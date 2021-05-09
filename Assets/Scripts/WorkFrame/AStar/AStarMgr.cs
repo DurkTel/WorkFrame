@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// A星寻路管理器 单例模式
 /// </summary>
-public class AStarMgr : BaseManager<AStarMgr>
+public class AStarMgr : SingletonBase<AStarMgr>
 {
     //地图的宽高
     private int mapW;

@@ -9,19 +9,25 @@ using UnityEngine.Events;
 /// 2.事件 
 /// 3.协程
 /// </summary>
-public class MonoController : MonoBehaviour {
+public class MonoController : MonoBehaviour 
+{
 
     private event UnityAction updateEvent;
+    private event UnityAction fixedUpdateEvent;
 
-	// Use this for initialization
-	void Start () {
+    void Start () {
         DontDestroyOnLoad(this.gameObject);
 	}
 	
-	// Update is called once per frame
 	void Update () {
         if (updateEvent != null)
             updateEvent();
+    }
+
+    void FixedUpdate()
+    {
+        if (fixedUpdateEvent != null)
+            fixedUpdateEvent();
     }
 
     /// <summary>
@@ -40,5 +46,22 @@ public class MonoController : MonoBehaviour {
     public void RemoveUpdateListener(UnityAction fun)
     {
         updateEvent -= fun;
+    }
+    /// <summary>
+    /// 给外部提供的 添加帧更新事件的函数
+    /// </summary>
+    /// <param name="fun"></param>
+    public void AddFixedUpdateListener(UnityAction fun)
+    {
+        fixedUpdateEvent += fun;
+    }
+
+    /// <summary>
+    /// 提供给外部 用于移除帧更新事件函数
+    /// </summary>
+    /// <param name="fun"></param>
+    public void RemoveFixedUpdateListener(UnityAction fun)
+    {
+        fixedUpdateEvent -= fun;
     }
 }

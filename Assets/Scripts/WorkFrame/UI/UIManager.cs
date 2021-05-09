@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
@@ -7,7 +8,7 @@ using UnityEngine.EventSystems;
 /// <summary>
 /// UI层级
 /// </summary>
-public enum E_UI_Layer
+public enum UI_Layer
 {
     Bot,
     Mid,
@@ -20,9 +21,9 @@ public enum E_UI_Layer
 /// 1.管理所有显示的面板
 /// 2.提供给外部 显示和隐藏等等接口
 /// </summary>
-public class UIManager : BaseManager<UIManager>
+public class UIManager : SingletonBase<UIManager>
 {
-    public Dictionary<string, BasePanel> panelDic = new Dictionary<string, BasePanel>();
+    public Dictionary<string, GUIView> panelDic = new Dictionary<string, GUIView>();
 
     private Transform bot;
     private Transform mid;
@@ -35,7 +36,7 @@ public class UIManager : BaseManager<UIManager>
     public UIManager()
     {
         //创建Canvas 让其过场景的时候 不被移除
-        GameObject obj = ResMgr.GetInstance().Load<GameObject>("UI/Canvas");
+        GameObject obj = ResManager.Instance.Load<GameObject>("UI/Canvas");
         canvas = obj.transform as RectTransform;
         GameObject.DontDestroyOnLoad(obj);
 
@@ -46,7 +47,7 @@ public class UIManager : BaseManager<UIManager>
         system = canvas.Find("System");
 
         //创建EventSystem 让其过场景的时候 不被移除
-        obj = ResMgr.GetInstance().Load<GameObject>("UI/EventSystem");
+        obj = ResManager.Instance.Load<GameObject>("UI/EventSystem");
         GameObject.DontDestroyOnLoad(obj);
     }
 
@@ -55,17 +56,17 @@ public class UIManager : BaseManager<UIManager>
     /// </summary>
     /// <param name="layer"></param>
     /// <returns></returns>
-    public Transform GetLayerFather(E_UI_Layer layer)
+    public Transform GetLayerFather(UI_Layer layer)
     {
         switch(layer)
         {
-            case E_UI_Layer.Bot:
+            case UI_Layer.Bot:
                 return this.bot;
-            case E_UI_Layer.Mid:
+            case UI_Layer.Mid:
                 return this.mid;
-            case E_UI_Layer.Top:
+            case UI_Layer.Top:
                 return this.top;
-            case E_UI_Layer.System:
+            case UI_Layer.System:
                 return this.system;
         }
         return null;
@@ -78,11 +79,11 @@ public class UIManager : BaseManager<UIManager>
     /// <param name="panelName">面板名</param>
     /// <param name="layer">显示在哪一层</param>
     /// <param name="callBack">当面板预设体创建成功后 你想做的事</param>
-    public void ShowPanel<T>(string panelName, E_UI_Layer layer = E_UI_Layer.Mid, UnityAction<T> callBack = null) where T:BasePanel
+    public void OpenView<T>(string panelName, UI_Layer layer = UI_Layer.Mid, UnityAction<T> callBack = null) where T: GUIView
     {
         if (panelDic.ContainsKey(panelName))
         {
-            panelDic[panelName].ShowMe();
+            panelDic[panelName].Enable();
             // 处理面板创建完成后的逻辑
             if (callBack != null)
                 callBack(panelDic[panelName] as T);
@@ -90,7 +91,7 @@ public class UIManager : BaseManager<UIManager>
             return;
         }
 
-        ResMgr.GetInstance().LoadAsync<GameObject>("UI/" + panelName, (obj) =>
+        ResManager.Instance.LoadAsync<GameObject>("UI/" + panelName, (obj) =>
         {
             //把他作为 Canvas的子对象
             //并且 要设置它的相对位置
@@ -98,19 +99,19 @@ public class UIManager : BaseManager<UIManager>
             Transform father = bot;
             switch(layer)
             {
-                case E_UI_Layer.Mid:
+                case UI_Layer.Mid:
                     father = mid;
                     break;
-                case E_UI_Layer.Top:
+                case UI_Layer.Top:
                     father = top;
                     break;
-                case E_UI_Layer.System:
+                case UI_Layer.System:
                     father = system;
                     break;
             }
             //设置父对象  设置相对位置和大小
             obj.transform.SetParent(father);
-
+            
             obj.transform.localPosition = Vector3.zero;
             obj.transform.localScale = Vector3.one;
 
@@ -119,11 +120,12 @@ public class UIManager : BaseManager<UIManager>
 
             //得到预设体身上的面板脚本
             T panel = obj.GetComponent<T>();
+            
             // 处理面板创建完成后的逻辑
             if (callBack != null)
                 callBack(panel);
-
-            panel.ShowMe();
+            panel.Enable();
+            panel.viewName = panelName;
 
             //把面板存起来
             panelDic.Add(panelName, panel);
@@ -134,20 +136,66 @@ public class UIManager : BaseManager<UIManager>
     /// 隐藏面板
     /// </summary>
     /// <param name="panelName"></param>
-    public void HidePanel(string panelName)
+    public void CloseView(string panelName)
     {
-        if(panelDic.ContainsKey(panelName))
+        if (panelDic.ContainsKey(panelName))
         {
-            panelDic[panelName].HideMe();
+            panelDic[panelName].Disable();
             GameObject.Destroy(panelDic[panelName].gameObject);
             panelDic.Remove(panelName);
         }
     }
 
     /// <summary>
+    /// 关闭所有视图
+    /// </summary>
+    public void CloseAllView()
+    {
+        foreach (var view in panelDic.Values)
+        {
+            view.Disable();
+            GameObject.Destroy(view.gameObject);
+        }
+        panelDic.Clear();
+    }
+
+    /// <summary>
+    /// 关闭所有视图 形参中的除外
+    /// </summary>
+    /// <param name="panelNames"></param>
+    public void CloseAllView(string[] panelNames)
+    {
+        for (int i = 0; i < panelDic.Count;)
+        {
+            var view = panelDic.ElementAt(i);
+            for (int j = 0; j < panelNames.Length; j++)
+            {
+                if (view.Key != panelNames[j])
+                {
+                    view.Value.Disable();
+                    GameObject.Destroy(view.Value.gameObject);
+                    panelDic.Remove(view.Key);
+                }
+                else
+                    i++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 此视图是否正在开启
+    /// </summary>
+    /// <param name="panelName"></param>
+    /// <returns></returns>
+    public bool IsShowing(string panelName)
+    {
+        return panelDic.ContainsKey(panelName);
+    }
+
+    /// <summary>
     /// 得到某一个已经显示的面板 方便外部使用
     /// </summary>
-    public T GetPanel<T>(string name) where T:BasePanel
+    public T GetView<T>(string name) where T: GUIView
     {
         if (panelDic.ContainsKey(name))
             return panelDic[name] as T;

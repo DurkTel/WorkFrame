@@ -60,7 +60,7 @@ public class PoolData
 /// 1.Dictionary List
 /// 2.GameObject 和 Resources 两个公共类中的 API 
 /// </summary>
-public class PoolMgr : BaseManager<PoolMgr>
+public class PoolMgr : SingletonBase<PoolMgr>
 {
     //缓存池容器 （衣柜）
     public Dictionary<string, PoolData> poolDic = new Dictionary<string, PoolData>();
@@ -82,7 +82,7 @@ public class PoolMgr : BaseManager<PoolMgr>
         else
         {
             //通过异步加载资源 创建对象给外部用
-            ResMgr.GetInstance().LoadAsync<GameObject>(name, (o) =>
+            ResManager.Instance.LoadAsync<GameObject>(name, (o) =>
             {
                 o.name = name;
                 callBack(o);

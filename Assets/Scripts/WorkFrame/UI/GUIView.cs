@@ -10,10 +10,12 @@ using UnityEngine.UI;
 /// 方便我们在子类中处理逻辑 
 /// 节约找控件的工作量
 /// </summary>
-public class BasePanel : MonoBehaviour
+public class GUIView : MonoBehaviour
 {
     //通过里式转换原则 来存储所有的控件
     private Dictionary<string, List<UIBehaviour>> controlDic = new Dictionary<string, List<UIBehaviour>>();
+    
+    [HideInInspector]public string viewName;
 
 	// Use this for initialization
 	protected virtual void Awake () {
@@ -29,7 +31,7 @@ public class BasePanel : MonoBehaviour
     /// <summary>
     /// 显示自己
     /// </summary>
-    public virtual void ShowMe()
+    public virtual void Enable()
     {
         
     }
@@ -37,9 +39,14 @@ public class BasePanel : MonoBehaviour
     /// <summary>
     /// 隐藏自己
     /// </summary>
-    public virtual void HideMe()
+    public virtual void Disable()
     {
 
+    }
+
+    public virtual void Close()
+    {
+        UIManager.Instance.CloseView(viewName);
     }
 
     protected virtual void OnClick(string btnName)
@@ -104,4 +111,10 @@ public class BasePanel : MonoBehaviour
             }
         }
     }
+
+    public Transform FindChildrenGameObject(string name)
+    {
+        return transform.Find(name);
+    }
+
 }

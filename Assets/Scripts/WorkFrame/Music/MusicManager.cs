@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class MusicMgr : BaseManager<MusicMgr>
+public class MusicManager : SingletonBase<MusicManager>
 {
     //唯一的背景音乐组件
     private AudioSource bkMusic = null;
@@ -17,16 +17,16 @@ public class MusicMgr : BaseManager<MusicMgr>
     //音效大小
     private float soundValue = 1;
 
-    public MusicMgr()
+    public MusicManager()
     {
-        MonoMgr.GetInstance().AddUpdateListener(Update);
+        MonoManager.Instance.AddUpdateListener(Update, "MusicManager");
     }
 
     private void Update()
     {
         for( int i = soundList.Count - 1; i >=0; --i )
         {
-            if(!soundList[i].isPlaying)
+            if(soundList[i] != null && !soundList[i].isPlaying)
             {
                 GameObject.Destroy(soundList[i]);
                 soundList.RemoveAt(i);
@@ -45,9 +45,10 @@ public class MusicMgr : BaseManager<MusicMgr>
             GameObject obj = new GameObject();
             obj.name = "BkMusic";
             bkMusic = obj.AddComponent<AudioSource>();
+            GameObject.DontDestroyOnLoad(bkMusic);
         }
         //异步加载背景音乐 加载完成后 播放
-        ResMgr.GetInstance().LoadAsync<AudioClip>("Music/BK/" + name, (clip) =>
+        ResManager.Instance.LoadAsync<AudioClip>("Music/BK/" + name, (clip) =>
         {
             bkMusic.clip = clip;
             bkMusic.loop = true;
@@ -92,25 +93,26 @@ public class MusicMgr : BaseManager<MusicMgr>
     /// <summary>
     /// 播放音效
     /// </summary>
-    public void PlaySound(string name, bool isLoop, UnityAction<AudioSource> callBack = null)
+    public AudioSource PlaySound(string name, bool isLoop, float volume = 0, UnityAction<AudioSource> callBack = null)
     {
-        if(soundObj == null)
+        if (soundObj == null)
         {
             soundObj = new GameObject();
             soundObj.name = "Sound";
         }
+        AudioSource source = soundObj.AddComponent<AudioSource>(); ;
         //当音效资源异步加载结束后 再添加一个音效
-        ResMgr.GetInstance().LoadAsync<AudioClip>("Music/Sound/" + name, (clip) =>
+        ResManager.Instance.LoadAsync<AudioClip>("Music/Sound/" + name, (clip) =>
         {
-            AudioSource source = soundObj.AddComponent<AudioSource>();
             source.clip = clip;
             source.loop = isLoop;
-            source.volume = soundValue;
+            source.volume = volume == 0 ? soundValue : volume;
             source.Play();
             soundList.Add(source);
-            if(callBack != null)
+            if (callBack != null)
                 callBack(source);
         });
+        return source;
     }
 
     /// <summary>
