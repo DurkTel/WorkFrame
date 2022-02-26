@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-
 public interface IEventInfo
 {
 
 }
 
+/// <summary>
+/// 对事件信息进行封装
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public class EventInfo<T> : IEventInfo
 {
     public UnityAction<T> actions;
@@ -32,54 +35,48 @@ public class EventInfo : IEventInfo
 
 /// <summary>
 /// 事件中心 单例模式对象
-/// 1.Dictionary
-/// 2.委托
-/// 3.观察者设计模式
-/// 4.泛型
 /// </summary>
 public class EventCenter : SingletonBase<EventCenter>
 {
-    //key —— 事件的名字（比如：怪物死亡，玩家死亡，通关 等等）
-    //value —— 对应的是 监听这个事件 对应的委托函数们
-    private Dictionary<string, IEventInfo> eventDic = new Dictionary<string, IEventInfo>();
+    private Dictionary<EventDefine, IEventInfo> eventDic = new Dictionary<EventDefine, IEventInfo>();
 
     /// <summary>
-    /// 添加事件监听
+    /// 添加需要传递参数的事件监听
     /// </summary>
-    /// <param name="name">事件的名字</param>
+    /// <param name="eventName">事件的名字</param>
     /// <param name="action">准备用来处理事件 的委托函数</param>
-    public void AddEventListener<T>(string name, UnityAction<T> action)
+    public void AddEventListener<T>(EventDefine eventName, UnityAction<T> action)
     {
         //有没有对应的事件监听
         //有的情况
-        if( eventDic.ContainsKey(name) )
+        if( eventDic.ContainsKey(eventName) )
         {
-            (eventDic[name] as EventInfo<T>).actions += action;
+            (eventDic[eventName] as EventInfo<T>).actions += action;
         }
         //没有的情况
         else
         {
-            eventDic.Add(name, new EventInfo<T>( action ));
+            eventDic.Add(eventName, new EventInfo<T>( action ));
         }
     }
 
     /// <summary>
     /// 监听不需要参数传递的事件
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="eventName"></param>
     /// <param name="action"></param>
-    public void AddEventListener(string name, UnityAction action)
+    public void AddEventListener(EventDefine eventName, UnityAction action)
     {
         //有没有对应的事件监听
         //有的情况
-        if (eventDic.ContainsKey(name))
+        if (eventDic.ContainsKey(eventName))
         {
-            (eventDic[name] as EventInfo).actions += action;
+            (eventDic[eventName] as EventInfo).actions += action;
         }
         //没有的情况
         else
         {
-            eventDic.Add(name, new EventInfo(action));
+            eventDic.Add(eventName, new EventInfo(action));
         }
     }
 
@@ -87,39 +84,39 @@ public class EventCenter : SingletonBase<EventCenter>
     /// <summary>
     /// 移除对应的事件监听
     /// </summary>
-    /// <param name="name">事件的名字</param>
+    /// <param name="eventName">事件的名字</param>
     /// <param name="action">对应之前添加的委托函数</param>
-    public void RemoveEventListener<T>(string name, UnityAction<T> action)
+    public void RemoveEventListener<T>(EventDefine eventName, UnityAction<T> action)
     {
-        if (eventDic.ContainsKey(name))
-            (eventDic[name] as EventInfo<T>).actions -= action;
+        if (eventDic.ContainsKey(eventName))
+            (eventDic[eventName] as EventInfo<T>).actions -= action;
     }
 
     /// <summary>
-    /// 移除不需要参数的事件
+    /// 
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="eventName"></param>
     /// <param name="action"></param>
-    public void RemoveEventListener(string name, UnityAction action)
+    public void RemoveEventListener(EventDefine eventName, UnityAction action)
     {
-        if (eventDic.ContainsKey(name))
-            (eventDic[name] as EventInfo).actions -= action;
+        if (eventDic.ContainsKey(eventName))
+            (eventDic[eventName] as EventInfo).actions -= action;
     }
 
     /// <summary>
-    /// 事件触发
+    /// 
     /// </summary>
-    /// <param name="name">哪一个名字的事件触发了</param>
-    public void EventTrigger<T>(string name, T info)
+    /// <typeparam name="T"></typeparam>
+    /// <param name="eventName"></param>
+    /// <param name="info"></param>
+    public void DispatchEvent<T>(EventDefine eventName, T info)
     {
         //有没有对应的事件监听
         //有的情况
-        if (eventDic.ContainsKey(name))
+        if (eventDic.ContainsKey(eventName))
         {
-            //eventDic[name]();
-            if((eventDic[name] as EventInfo<T>).actions != null)
-                (eventDic[name] as EventInfo<T>).actions.Invoke(info);
-            //eventDic[name].Invoke(info);
+            if((eventDic[eventName] as EventInfo<T>).actions != null)
+                (eventDic[eventName] as EventInfo<T>).actions.Invoke(info);
         }
     }
 
@@ -127,16 +124,14 @@ public class EventCenter : SingletonBase<EventCenter>
     /// 事件触发（不需要参数的）
     /// </summary>
     /// <param name="name"></param>
-    public void EventTrigger(string name)
+    public void DispatchEvent(EventDefine eventName)
     {
         //有没有对应的事件监听
         //有的情况
-        if (eventDic.ContainsKey(name))
+        if (eventDic.ContainsKey(eventName))
         {
-            //eventDic[name]();
-            if ((eventDic[name] as EventInfo).actions != null)
-                (eventDic[name] as EventInfo).actions.Invoke();
-            //eventDic[name].Invoke(info);
+            if ((eventDic[eventName] as EventInfo).actions != null)
+                (eventDic[eventName] as EventInfo).actions.Invoke();
         }
     }
 
